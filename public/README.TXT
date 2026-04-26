@@ -1,0 +1,1 @@
+"public/" is for static elements that will be unchanged once the page is pushed/published.
