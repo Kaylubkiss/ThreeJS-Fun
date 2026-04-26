@@ -2,20 +2,75 @@ import * as THREE from 'three';
 import { glContext } from './classes/glContext.js'
 
 
-const sceneCamera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-sceneCamera.position.z = 5;
-sceneCamera.lookAt(0,0,0);
 
-const m_graphicsContext = new glContext(sceneCamera);
+let sceneObjects = [];
+let graphicsContext;
+let timer;
 
-function main()
+
+function animate()
 {
-  {
+	update();
+	graphicsContext.render();
+	requestAnimationFrame( animate );
+}
+
+function update()
+{
+	timer.update();
+}
+
+function initSkybox()
+{
+	let rootDirectory = "/cubemaps/";
+	let targetDirectory = "IceRiver/";
+	let sides = ["negz", "posz", "posy", "negy", "posx", "negx"];
+	let suffix = ".jpg";
+	let materialArray = [];
+
+	for (let i = 0; i < 6; ++i)
+	{
+		let url = rootDirectory + targetDirectory + sides[i] + suffix;
+		let texture = new THREE.TextureLoader().load(url);
+		materialArray.push( new THREE.MeshBasicMaterial({map: texture, side: THREE.BackSide }));
+	}
+	
+
+	let skyboxExtent = 100000;
+	let skyBoxGeo = new THREE.BoxGeometry(skyboxExtent, skyboxExtent, skyboxExtent);
+	let skybox = new THREE.Mesh( skyBoxGeo, materialArray );
+
+	graphicsContext.addObjectToScene(skybox);
+}
+
+function init()
+{
+  timer = new THREE.Timer();
+	
+	timer.connect(document); //uses page visibility API so that there aren't crazy deltas when exiting the page.
+
+	let sceneCamera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
+	sceneCamera.position.z = 5;
+	sceneCamera.lookAt(0,0,0);
+	
+	graphicsContext = new glContext(sceneCamera);
+
+
+	/*
+		OBJECTS
+	*/
+
+	initSkybox();
+
+	graphicsContext.loadObject('resources/cartoon_lowpoly_small_city_free_pack/scene.gltf');
+
+	{
 		const skyColor = 0xB1E1FF; // light blue
 		const groundColor = 0xB97A20; // brownish orange
 		const intensity = 2;
 		const light = new THREE.HemisphereLight( skyColor, groundColor, intensity );
-		m_graphicsContext.addObjectToScene( light );
+		graphicsContext.addObjectToScene( light );
+		sceneObjects.push(light);
 	}
 
   {
@@ -24,13 +79,9 @@ function main()
 		const intensity = 2.5;
 		const light = new THREE.DirectionalLight( color, intensity );
 		light.position.set( 5, 10, 2 );
-    m_graphicsContext.addObjectToScene( light );
-
+    graphicsContext.addObjectToScene( light );
+		sceneObjects.push(light);
 	}
-
-  m_graphicsContext.loadObject('resources/cartoon_lowpoly_small_city_free_pack/scene.gltf');
-
-  m_graphicsContext.setAnimationLoop();
 
   window.addEventListener('beforeunload', (event) => 
   {
@@ -39,4 +90,6 @@ function main()
 
 }
 
-main();
+init();
+
+animate();

@@ -1,3 +1,7 @@
+/* 
+  * @author Caleb Kissinger
+*/
+
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -39,7 +43,6 @@ export class glContext
     const mainView = document.querySelector("#mainView");
 
     this.m_renderer = new THREE.WebGLRenderer({ canvas: mainView });
-    this.m_objs = [];
     
     this.m_renderer.setSize(window.innerWidth, window.innerHeight);
     
@@ -85,7 +88,6 @@ export class glContext
   addObjectToScene( obj )
   {
     this.m_scene.add( obj );
-    this.m_objs.push( obj );
 
     console.log("added an object to the scene\n");
   }
@@ -101,16 +103,18 @@ export class glContext
 
   }
 
-  setAnimationLoop()
+  #needsResize()
   {
-    this.m_renderer.setAnimationLoop( ( time ) => { //time (milliseconds) 
-      
-      this.m_objs.forEach( ( obj ) => {
-        obj.rotation.x = time / 2000;
-        obj.rotation.y = time / 1000;
-      });
-      
-      this.m_renderer.render( this.m_scene, this.m_camera );
-    } );
+    return (document.innerWidth != this.m_width || document.innerHeight != this.m_height);
+  }
+
+  render()
+  {
+    if (this.#needsResize())
+    {
+      this.resize();
+    }
+    
+    this.m_renderer.render(this.m_scene, this.m_camera);
   }
 }
