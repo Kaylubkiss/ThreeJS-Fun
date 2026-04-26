@@ -31,16 +31,17 @@ function initSkybox()
 	for (let i = 0; i < 6; ++i)
 	{
 		let url = rootDirectory + targetDirectory + sides[i] + suffix;
-		let texture = new THREE.TextureLoader().load(url);
-		materialArray.push( new THREE.MeshBasicMaterial({map: texture, side: THREE.BackSide }));
+		materialArray.push( url );
 	}
-	
 
-	let skyboxExtent = 100000;
-	let skyBoxGeo = new THREE.BoxGeometry(skyboxExtent, skyboxExtent, skyboxExtent);
-	let skybox = new THREE.Mesh( skyBoxGeo, materialArray );
+	const cubemapTexture = new THREE.CubeTextureLoader().load(materialArray);
 
-	graphicsContext.addObjectToScene(skybox);
+	graphicsContext.addSceneBackground(cubemapTexture);
+}
+
+function initEnvironmentMap()
+{
+
 }
 
 function init()

@@ -92,6 +92,11 @@ export class glContext
     console.log("added an object to the scene\n");
   }
 
+  addSceneBackground( background )
+  {
+    this.m_scene.background = background;
+  }
+
   resize()
   {
     this.m_width = window.innerWidth;
