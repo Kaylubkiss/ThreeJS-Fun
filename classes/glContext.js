@@ -92,9 +92,16 @@ export class glContext
     console.log("added an object to the scene\n");
   }
 
-  addSceneBackground( background )
+  addSceneBackground( background, isEnvironment = false )
   {
     this.m_scene.background = background;
+
+    if (isEnvironment == true)
+    {
+      console.log("isEnvironment is true in glContext.addSceneBackground()")
+      this.m_scene.environment = background;
+    }
+
   }
 
   resize()
@@ -121,5 +128,10 @@ export class glContext
     }
     
     this.m_renderer.render(this.m_scene, this.m_camera);
+  }
+
+  getRenderer()
+  {
+    return this.m_renderer;
   }
 }
