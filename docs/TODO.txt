@@ -1,0 +1,7 @@
+TODO (4.28.26):
+- do shadowing
+- do instance drawing (batch mesh drawing)
+- spawn water with water mesh (nautical theme)
+- get input controls (rotation, moving forward)
+- load boat to control with
+- look into physics/collision with sphere on plane.

@@ -7,26 +7,6 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 
-function setFrameArea( sizeToFitOnScreen, boxSize, boxCenter, camera )
-{
-  const halfSizeToFitOnScreen = sizeToFitOnScreen * 0.5;
-  const halfFovY = THREE.MathUtils.degToRad( camera.fov * 0.5 );
-  const distance = halfSizeToFitOnScreen / Math.tan( halfFovY );
-
-  const direction = ( new THREE.Vector3() )
-    .subVectors( camera.position, boxCenter ) //camerapos - boxCenter
-    .multiply( new THREE.Vector3(1, 0, 1))
-    .normalize();
-
-  camera.position.copy( direction.multiplyScalar(distance).add(boxCenter) );
-
-  camera.near = boxSize / 100;
-  camera.far = boxSize * 100;
-
-  camera.updateProjectionMatrix();
-
-  camera.lookAt( boxCenter.x, boxCenter.y, boxCenter.z );
-}
 
 
 export class glContext 
@@ -36,6 +16,8 @@ export class glContext
     this.m_scene = new THREE.Scene();
     this.m_camera = camera;
     this.m_loader = new GLTFLoader();
+    this.m_sceneCenter = new THREE.Vector3(0,0,0);
+    this.m_resources = []; 
 
     this.m_width = window.innerWidth;
     this.m_height = window.innerHeight;
@@ -50,6 +32,20 @@ export class glContext
     this.m_controls.update();
     
     document.body.appendChild( this.m_renderer.domElement );
+
+    window.addEventListener('beforeunload', (event) => 
+    {
+      for (const obj of this.m_resources)
+      {
+        //TODO: make more sophisticated resource management.
+        if (obj instanceof THREE.Object3D)
+        {
+          obj.dispose();
+        }
+      }
+
+      console.log("unloaded objects\n");
+    });
   }
 
   #loadObjectCallback( gltf )
@@ -64,7 +60,7 @@ export class glContext
     const boxSize = box.getSize( new THREE.Vector3() ).length();
     const boxCenter = box.getCenter( new THREE.Vector3() );
 
-    setFrameArea( boxSize * 0.5, boxSize, boxCenter, this.m_camera );
+    this.setFrameArea( boxSize * 0.5, boxSize, boxCenter );
 
     this.m_controls.maxDistance = boxSize * 10;
     this.m_controls.target.copy( boxCenter );
@@ -88,6 +84,7 @@ export class glContext
   addObjectToScene( obj )
   {
     this.m_scene.add( obj );
+    this.m_resources.push( obj );
 
     console.log("added an object to the scene\n");
   }
@@ -134,4 +131,48 @@ export class glContext
   {
     return this.m_renderer;
   }
+
+  getSceneCenter()
+  {
+    return this.m_sceneCenter;
+  }
+
+  
+  updateObjectCenters()
+  {
+    for (const obj of this.m_resources)
+    {
+      if (obj instanceof THREE.Object3D)
+      {
+        obj.position.addVectors(obj.position, this.m_sceneCenter);
+      }
+    }
+  }
+
+  setFrameArea( sizeToFitOnScreen, boxSize, boxCenter )
+  {
+    const halfSizeToFitOnScreen = sizeToFitOnScreen * 0.5;
+    const halfFovY = THREE.MathUtils.degToRad( this.m_camera.fov * 0.5 );
+    const distance = halfSizeToFitOnScreen / Math.tan( halfFovY );
+
+    const direction = ( new THREE.Vector3() )
+      .subVectors( this.m_camera.position, boxCenter ) //camerapos - boxCenter
+      .multiply( new THREE.Vector3(1, 0, 1))
+      .normalize();
+
+    this.m_camera.position.copy( direction.multiplyScalar(distance).add(boxCenter) );
+
+    this.m_camera.near = boxSize / 100;
+    this.m_camera.far = boxSize * 100;
+
+    this.m_camera.updateProjectionMatrix();
+
+    this.m_camera.lookAt( boxCenter.x, boxCenter.y, boxCenter.z );
+
+    this.m_sceneCenter = boxCenter;
+
+    this.updateObjectCenters();
+
+  }
+
 }

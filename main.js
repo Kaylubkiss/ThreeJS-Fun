@@ -8,12 +8,80 @@ let sceneObjects = [];
 let graphicsContext;
 let timer;
 
+const fragmentShader = `
+  #include <common>
 
-function animate()
+  uniform vec3 iResolution;
+  uniform float iTime;
+  uniform sampler2D iChannel0;
+
+  // By Daedelus: https://www.shadertoy.com/user/Daedelus
+  // license: Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+  #define TIMESCALE 0.25
+  #define TILES 8
+  #define COLOR 0.7, 1.6, 2.8
+
+  void mainImage( out vec4 fragColor, in vec2 fragCoord )
+  {
+    vec2 uv = fragCoord.xy / iResolution.xy;
+    uv.x *= iResolution.x / iResolution.y;
+
+    vec4 noise = texture2D(iChannel0, floor(uv * float(TILES)) / float(TILES));
+    float p = 1.0 - mod(noise.r + noise.g + noise.b + iTime * float(TIMESCALE), 1.0);
+    p = min(max(p * 3.0 - 1.8, 0.1), 2.0);
+
+    vec2 r = mod(uv * float(TILES), 1.0);
+    r = vec2(pow(r.x - 0.5, 2.0), pow(r.y - 0.5, 2.0));
+    p *= 1.0 - pow(min(1.0, 12.0 * dot(r, r)), 2.0);
+
+    fragColor = vec4(COLOR, 1.0) * p;
+  }
+
+  varying vec2 vUv;
+
+  void main() {
+    mainImage(gl_FragColor, vUv * iResolution.xy);
+  }
+  `;
+
+const vertexShader = `
+	varying vec2 vUv;
+	void main() {
+		vUv = uv;
+		gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+	}
+`;
+
+const movingTexture = new THREE.TextureLoader().load( 'resources/gman-face.jpg' );
+movingTexture.minFilter = THREE.NearestFilter;
+movingTexture.magFilter = THREE.NearestFilter;
+movingTexture.wrapS = THREE.RepeatWrapping;
+movingTexture.wrapT = THREE.RepeatWrapping;
+
+const uniforms = {
+	iTime: { value: 0 },
+	iResolution: { value: new THREE.Vector3( 1, 1, 1 ) },
+	iChannel0: { value: movingTexture },
+};
+
+const movingMaterial = new THREE.ShaderMaterial( {
+	vertexShader,
+	fragmentShader,
+	uniforms,
+} );
+/////////////////
+
+
+function animate( time )
 {
 	update();
 	graphicsContext.render();
 	requestAnimationFrame( animate );
+
+	time *= .001;
+
+	uniforms.iTime.value = time;
+
 }
 
 function update()
@@ -50,7 +118,6 @@ async function initEnvironmentMap()
 	const texture = await loader.loadAsync( rootDirectory + file );
 
 	texture.mapping = THREE.EquirectangularReflectionMapping;
-	texture.colorSpace = THREE.SRGBColorSpace;
 
 	graphicsContext.addSceneBackground(texture, true);
 
@@ -60,7 +127,6 @@ async function initEnvironmentMap()
 
 	renderer.toneMapping = THREE.ACESFilmicToneMapping;
 	renderer.toneMappingExposure = 1.0;
-
 }
 
 function initPerspectiveCamera()
@@ -93,6 +159,37 @@ function initPerspectiveCamera()
 
 }
 
+function initTextureObject()
+{
+
+	const geometry = new THREE.SphereGeometry(10, 32, 16);
+	const obj = new THREE.Mesh(geometry, movingMaterial);
+
+	obj.position.set(-20, 10, 0);
+
+	graphicsContext.addObjectToScene( obj );
+
+}
+
+function initObjects()
+{
+	/*
+		sphere geometry
+	*/
+
+	const geometry = new THREE.SphereGeometry(10, 32, 16);
+	const material = new THREE.MeshPhongMaterial();
+	const obj = new THREE.Mesh(geometry, material);
+
+	obj.position.set(0, 10, 0);
+
+	graphicsContext.addObjectToScene(obj);
+
+	
+	initTextureObject();
+
+}
+
 function init()
 {
   timer = new THREE.Timer();
@@ -112,29 +209,10 @@ function init()
 
 	graphicsContext.loadObject('resources/cartoon_lowpoly_small_city_free_pack/scene.gltf');
 
-	/* {
-		const skyColor = 0xB1E1FF; // light blue
-		const groundColor = 0xB97A20; // brownish orange
-		const intensity = 2;
-		const light = new THREE.HemisphereLight( skyColor, groundColor, intensity );
-		graphicsContext.addObjectToScene( light );
-		sceneObjects.push(light);
-	}
-
-  {
-
-		const color = 0xFFFFFF;
-		const intensity = 2.5;
-		const light = new THREE.DirectionalLight( color, intensity );
-		light.position.set( 5, 10, 2 );
-    graphicsContext.addObjectToScene( light );
-		sceneObjects.push(light);
-	} */
-
-  window.addEventListener('beforeunload', (event) => 
-  {
-    console.log("unloaded objects\n");
-  });
+	//making a mesh:
+	//1) need material (how should light respond to hitting its surface?)
+	//2) need geometry (how is the appearance defined in the coordinate space?)
+	initObjects();
 
 }
 
