@@ -8,46 +8,45 @@ let sceneObjects = [];
 let graphicsContext;
 let timer;
 
-const fragmentShader = `
+const fsCode = `
   #include <common>
 
-  uniform vec3 iResolution;
-  uniform float iTime;
-  uniform sampler2D iChannel0;
+  uniform float uTime;
+  uniform sampler2D textureSampler;
 
   // By Daedelus: https://www.shadertoy.com/user/Daedelus
   // license: Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
   #define TIMESCALE 0.25
   #define TILES 8
   #define COLOR 0.7, 1.6, 2.8
+  
+	in vec2 outUV;
+  out vec4 outColor;
 
-  void mainImage( out vec4 fragColor, in vec2 fragCoord )
-  {
-    vec2 uv = fragCoord.xy / iResolution.xy;
-    uv.x *= iResolution.x / iResolution.y;
+  void main() {
 
-    vec4 noise = texture2D(iChannel0, floor(uv * float(TILES)) / float(TILES));
-    float p = 1.0 - mod(noise.r + noise.g + noise.b + iTime * float(TIMESCALE), 1.0);
+		vec2 uv = outUV.xy;
+
+		vec3 texture_color = texture(textureSampler, uv).rgb;
+		
+    vec4 noise = texture2D(textureSampler, floor(uv * float(TILES)) / float(TILES));
+    float p = 1.0 - mod(noise.r + noise.g + noise.b + uTime * float(TIMESCALE), 1.0);
     p = min(max(p * 3.0 - 1.8, 0.1), 2.0);
 
     vec2 r = mod(uv * float(TILES), 1.0);
     r = vec2(pow(r.x - 0.5, 2.0), pow(r.y - 0.5, 2.0));
     p *= 1.0 - pow(min(1.0, 12.0 * dot(r, r)), 2.0);
 
-    fragColor = vec4(COLOR, 1.0) * p;
-  }
-
-  varying vec2 vUv;
-
-  void main() {
-    mainImage(gl_FragColor, vUv * iResolution.xy);
+    outColor = vec4(texture_color, 1.0) * p;
   }
   `;
 
-const vertexShader = `
-	varying vec2 vUv;
-	void main() {
-		vUv = uv;
+const vsCode = `
+	out vec2 outUV;
+
+	void main() 
+	{
+		outUV = uv;
 		gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
 	}
 `;
@@ -58,17 +57,19 @@ movingTexture.magFilter = THREE.NearestFilter;
 movingTexture.wrapS = THREE.RepeatWrapping;
 movingTexture.wrapT = THREE.RepeatWrapping;
 
-const uniforms = {
-	iTime: { value: 0 },
-	iResolution: { value: new THREE.Vector3( 1, 1, 1 ) },
-	iChannel0: { value: movingTexture },
+const vUniforms = 
+{
+	uTime: { value: 0 },
+	textureSampler: { value: movingTexture },
 };
 
 const movingMaterial = new THREE.ShaderMaterial( {
-	vertexShader,
-	fragmentShader,
-	uniforms,
+	vertexShader: vsCode,
+	fragmentShader: fsCode,
+	uniforms: vUniforms,
+	glslVersion: THREE.GLSL3,
 } );
+movingMaterial.name = "moving texture material";
 /////////////////
 
 
@@ -80,32 +81,13 @@ function animate( time )
 
 	time *= .001;
 
-	uniforms.iTime.value = time;
+	vUniforms.uTime.value = time;
 
 }
 
 function update()
 {
 	timer.update();
-}
-
-function initSkybox()
-{
-	let rootDirectory = "/cubemaps/";
-	let targetDirectory = "IceRiver/";
-	let sides = ["negz", "posz", "posy", "negy", "posx", "negx"];
-	let suffix = ".jpg";
-	let materialArray = [];
-
-	for (let i = 0; i < 6; ++i)
-	{
-		let url = rootDirectory + targetDirectory + sides[i] + suffix;
-		materialArray.push( url );
-	}
-
-	const cubemapTexture = new THREE.CubeTextureLoader().load(materialArray);
-
-	graphicsContext.addSceneBackground(cubemapTexture);
 }
 
 async function initEnvironmentMap()
@@ -152,10 +134,17 @@ function initPerspectiveCamera()
 	);
 
 	sceneCamera.projectionMatrix = projectionMatrix;
+
 	sceneCamera.position.z = 5;
 	sceneCamera.lookAt(0,0,0);
 
 	return sceneCamera;
+
+}
+
+function initLights()
+{
+
 
 }
 
