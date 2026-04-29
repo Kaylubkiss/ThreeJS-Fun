@@ -1,12 +1,13 @@
 import * as THREE from 'three';
-import { HDRLoader } from 'three/examples/jsm/loaders/HDRLoader.js'
-import { glContext } from './classes/glContext.js'
-
-
+import { HDRLoader } from 'three/examples/jsm/loaders/HDRLoader.js';
+import { glContext } from './classes/glContext.js';
+import GUI from 'lil-gui';
+import { Water } from 'three/addons/objects/Water.js'
 
 let sceneObjects = [];
 let graphicsContext;
 let timer;
+let gui;
 
 const fsCode = `
   #include <common>
@@ -73,15 +74,13 @@ movingMaterial.name = "moving texture material";
 /////////////////
 
 
-function animate( time )
+function animate( )
 {
 	update();
 	graphicsContext.render();
 	requestAnimationFrame( animate );
 
-	time *= .001;
-
-	vUniforms.uTime.value = time;
+	vUniforms.uTime.value = timer.getElapsed();
 
 }
 
@@ -105,7 +104,7 @@ async function initEnvironmentMap()
 
 	console.log("loaded environment map " + file);
 
-	let renderer = graphicsContext.getRenderer();
+	const renderer = graphicsContext.getRenderer();
 
 	renderer.toneMapping = THREE.ACESFilmicToneMapping;
 	renderer.toneMappingExposure = 1.0;
@@ -142,9 +141,10 @@ function initPerspectiveCamera()
 
 }
 
-function initLights()
+function initGUI()
 {
-
+	gui = new GUI();
+	gui.add( document, 'title' );
 
 }
 
@@ -155,8 +155,15 @@ function initTextureObject()
 	const obj = new THREE.Mesh(geometry, movingMaterial);
 
 	obj.position.set(-20, 10, 0);
+	obj.castShadow = true;
+	obj.receiveShadow = true;
 
 	graphicsContext.addObjectToScene( obj );
+
+	const folder = gui.addFolder( "textured objection positions");
+	folder.add( obj.position, 'x', -100, 100, 5);
+	folder.add( obj.position, 'y', -100, 100, 5);
+	folder.add( obj.position, 'z', -100, 100, 5);
 
 }
 
@@ -165,17 +172,54 @@ function initObjects()
 	/*
 		sphere geometry
 	*/
+	const light = new THREE.PointLight(0xffffff, 10000, 1000);
+	light.position.set(0, 50, 50);
+
+	
+	light.castShadow = true;
+
+	const pointLightHelper = new THREE.PointLightHelper( light, 15 );
+
+	const folder = gui.addFolder('Light Position');
+	folder.add(light.position, 'x', -100, 100, 5).onChange((event) =>
+	{
+		pointLightHelper.update();
+	});
+
+	folder.add(light.position, 'y', -100, 100, 5).onChange((event)=>{
+		pointLightHelper.update();
+	});
+
+	folder.add(light.position, 'z', -100, 100, 5).onChange((event)=>{
+		pointLightHelper.update();
+	});
+	
+
+	graphicsContext.addObjectToScene( pointLightHelper );
+	graphicsContext.addObjectToScene( light );
 
 	const geometry = new THREE.SphereGeometry(10, 32, 16);
 	const material = new THREE.MeshPhongMaterial();
-	const obj = new THREE.Mesh(geometry, material);
+	const sphere = new THREE.Mesh(geometry, material);
 
-	obj.position.set(0, 10, 0);
+	sphere.position.set(0, 10, 0);
+	sphere.castShadow = true;
+	sphere.receiveShadow = true;
 
-	graphicsContext.addObjectToScene(obj);
-
+	graphicsContext.addObjectToScene(sphere);
 	
 	initTextureObject();
+
+	const plane = new THREE.Mesh(
+		new THREE.PlaneGeometry(200, 200),
+		new THREE.MeshStandardMaterial({ color: 0xF0F0F0 })
+	);
+
+	plane.receiveShadow = true;
+	plane.rotation.x = -Math.PI / 2.0;
+
+	graphicsContext.addObjectToScene(plane, true);
+
 
 }
 
@@ -184,6 +228,8 @@ function init()
   timer = new THREE.Timer();
 	
 	timer.connect(document); //uses page visibility API so that there aren't crazy deltas when exiting the page.
+
+	initGUI();
 
 	let sceneCamera = initPerspectiveCamera();
 	
@@ -196,12 +242,14 @@ function init()
 
 	initEnvironmentMap();
 
-	graphicsContext.loadObject('resources/cartoon_lowpoly_small_city_free_pack/scene.gltf');
+	//graphicsContext.loadObject('resources/cartoon_lowpoly_small_city_free_pack/scene.gltf');
 
 	//making a mesh:
 	//1) need material (how should light respond to hitting its surface?)
 	//2) need geometry (how is the appearance defined in the coordinate space?)
 	initObjects();
+
+	
 
 }
 

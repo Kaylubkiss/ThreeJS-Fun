@@ -1,5 +1,5 @@
 TODO (4.28.26):
-- do shadowing
+x do shadowing
 - do instance drawing (batch mesh drawing)
 - spawn water with water mesh (nautical theme)
 - get input controls (rotation, moving forward)

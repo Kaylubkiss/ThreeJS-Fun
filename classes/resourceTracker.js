@@ -24,10 +24,22 @@ export class ResourceTracker
     if (resource instanceof THREE.Object3D)
     {
       this.m_resources.add(resource);
+      if (resource instanceof THREE.Mesh)
+      {
+        resource.castShadow = true;
+        resource.receiveShadow = true;
+      }
 
       //traverse the children objects
       resource.traverse((object) => 
       {
+
+        if (object instanceof THREE.Mesh)
+        {
+          object.castShadow = true;
+          object.receiveShadow = true;
+        }
+
         this.track(object.geometry);
 
         if (Array.isArray(object.material))

@@ -14,7 +14,6 @@ export class glContext
     this.m_scene = new THREE.Scene();
     this.m_camera = camera;
     this.m_GLTFloader = new GLTFLoader();
-    this.m_sceneCenter = new THREE.Vector3(0,0,0);
 
     this.m_resourceTracker = new ResourceTracker(); 
 
@@ -41,7 +40,6 @@ export class glContext
     
     this.m_scene.add( this.m_resourceTracker.track(root) );
     
-
     // want to reframe the camera to cover the whole env/object.
     const box = new THREE.Box3().setFromObject( root );
     const boxSize = box.getSize( new THREE.Vector3() ).length();
@@ -56,8 +54,6 @@ export class glContext
     this.m_controls.maxDistance = boxSize * 10;
     this.m_controls.target.copy( boxCenter );
     this.m_controls.update();
-    
-    this.m_sceneCenter.copy(boxCenter);
 
     console.log("successfully loaded scene\n");
   }
@@ -74,10 +70,19 @@ export class glContext
       glContext.loadObjectErrorCallback);
   }
 
-  addObjectToScene( obj )
+  addObjectToScene( obj, focusOnObject = false )
   {
 
     this.m_scene.add( this.m_resourceTracker.track(obj) );
+
+    if (focusOnObject)
+    {
+      const box = new THREE.Box3().setFromObject( obj );
+      const boxSize = box.getSize( new THREE.Vector3() ).length();
+      const boxCenter = box.getCenter( new THREE.Vector3() );
+
+      this.setFrameArea(boxSize * 0.5, boxSize, boxCenter );
+    }
 
     console.log("added an object to the scene\n");
   }
@@ -90,9 +95,6 @@ export class glContext
     {
       this.m_scene.environment = background;
     }
-
-
-
   }
 
   resize()
@@ -126,11 +128,6 @@ export class glContext
     return this.m_renderer;
   }
 
-  getSceneCenter()
-  {
-    return this.m_sceneCenter;
-  }
-
   setFrameArea( sizeToFitOnScreen, boxSize, boxCenter )
   {
     const halfSizeToFitOnScreen = sizeToFitOnScreen * 0.5;
@@ -150,10 +147,6 @@ export class glContext
     this.m_camera.updateProjectionMatrix();
 
     this.m_camera.lookAt( boxCenter.x, boxCenter.y, boxCenter.z );
-
-    this.m_sceneCenter = boxCenter;
-
-    this.m_resourceTracker.updateObjectCenters(this.m_sceneCenter);
 
   }
 
