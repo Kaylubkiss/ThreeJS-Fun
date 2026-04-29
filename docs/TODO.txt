@@ -1,4 +1,4 @@
-TODO (4.28.26):
+TODO (4.29.26):
 -do something with rotational math (rotate the spheres to orbit around each other)
 -make sure you can explain how quaternions work
 -look into the stable fluid sim paper (possibly write some shaders)
