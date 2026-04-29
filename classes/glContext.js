@@ -128,6 +128,11 @@ export class glContext
     return this.m_renderer;
   }
 
+  getScene()
+  {
+    return this.m_scene;
+  }
+
   setFrameArea( sizeToFitOnScreen, boxSize, boxCenter )
   {
     const halfSizeToFitOnScreen = sizeToFitOnScreen * 0.5;

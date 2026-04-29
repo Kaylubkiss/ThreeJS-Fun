@@ -219,6 +219,35 @@ function initObjects()
 	plane.rotation.x = -Math.PI / 2.0;
 
 	graphicsContext.addObjectToScene(plane, true);
+	
+	const cubeCamera = new THREE.CubeCamera(1, Number.MAX_SAFE_INTEGER, 
+		new THREE.WebGLCubeRenderTarget( 256, {
+		generateMipmaps: true, 
+		minFiler: THREE.LinearMipmapLinearFilter
+	}) );
+
+	graphicsContext.addObjectToScene( cubeCamera );
+  
+	const cube = new THREE.Mesh( 
+		new THREE.BoxGeometry(10, 10, 10),
+		new THREE.MeshLambertMaterial( {
+		color: 0xffffff, 
+		envMap: cubeCamera.renderTarget.texture 
+		})
+	);
+	cube.position.y = 20;
+
+	cube.visible = false;
+	cubeCamera.position.copy( cube.position );
+
+	const renderer = graphicsContext.getRenderer();
+	const scene = graphicsContext.getScene();
+
+	cubeCamera.update( renderer, scene );
+
+	cube.visible = true;
+
+	graphicsContext.addObjectToScene( cube );
 
 
 }
@@ -248,7 +277,6 @@ function init()
 	//1) need material (how should light respond to hitting its surface?)
 	//2) need geometry (how is the appearance defined in the coordinate space?)
 	initObjects();
-
 	
 
 }

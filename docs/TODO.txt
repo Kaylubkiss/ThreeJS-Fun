@@ -1,7 +1,7 @@
 TODO (4.28.26):
-x do shadowing
-- do instance drawing (batch mesh drawing)
-- spawn water with water mesh (nautical theme)
-- get input controls (rotation, moving forward)
-- load boat to control with
-- look into physics/collision with sphere on plane.
+-do something with rotational math (rotate the spheres to orbit around each other)
+-make sure you can explain how quaternions work
+-look into the stable fluid sim paper (possibly write some shaders)
+-click to interact with a thing (change material color)
+-move controls with cube.
+-make sure you can explain how texture sampling works (mipmapping)
