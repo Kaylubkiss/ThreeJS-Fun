@@ -1,7 +1,8 @@
 TODO (4.29.26):
--do something with rotational math (rotate the spheres to orbit around each other)
--custom pbr shader (use logic from engine) -> be able to explain the parameters
--bloom post-processing shader
+-do controls
 -make sure you can explain how quaternions work
+-do something with rotational math (rotate the spheres to orbit around each other)
+-bloom post-processing shader
+-custom pbr shader (use logic from engine) -> be able to explain the parameters
 -look into the stable fluid sim paper (possibly write some shaders)
 -make sure you can explain how texture sampling works (mipmapping)

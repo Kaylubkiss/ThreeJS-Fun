@@ -2,81 +2,33 @@ import * as THREE from 'three';
 import { HDRLoader } from 'three/examples/jsm/loaders/HDRLoader.js';
 import { glContext } from './classes/glContext.js';
 import GUI from 'lil-gui';
+import { TileFadeShaderToy } from './objects/TileFadeShaderToy.js';
 import { Water } from 'three/addons/objects/Water.js'
 
-let sceneObjects = [];
 let graphicsContext;
 let timer;
 let gui;
+let vUniforms = { uTime: { value: 0 } };
 
-const fsCode = `
-  #include <common>
+const cubeCamera = new THREE.CubeCamera(1, Number.MAX_SAFE_INTEGER, 
+		new THREE.WebGLCubeRenderTarget( 256, {
+		generateMipmaps: true, 
+		minFiler: THREE.LinearMipmapLinearFilter
+	}) );
 
-  uniform float uTime;
-  uniform sampler2D textureSampler;
-
-  // By Daedelus: https://www.shadertoy.com/user/Daedelus
-  // license: Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
-  #define TIMESCALE 0.25
-  #define TILES 8
-  #define COLOR 0.7, 1.6, 2.8
-  
-	in vec2 outUV;
-  out vec4 outColor;
-
-  void main() {
-
-		vec2 uv = outUV.xy;
-
-		vec3 texture_color = texture(textureSampler, uv).rgb;
-		
-    vec4 noise = texture2D(textureSampler, floor(uv * float(TILES)) / float(TILES));
-    float p = 1.0 - mod(noise.r + noise.g + noise.b + uTime * float(TIMESCALE), 1.0);
-    p = min(max(p * 3.0 - 1.8, 0.1), 2.0);
-
-    vec2 r = mod(uv * float(TILES), 1.0);
-    r = vec2(pow(r.x - 0.5, 2.0), pow(r.y - 0.5, 2.0));
-    p *= 1.0 - pow(min(1.0, 12.0 * dot(r, r)), 2.0);
-
-    outColor = vec4(texture_color, 1.0) * p;
-  }
-  `;
-
-const vsCode = `
-	out vec2 outUV;
-
-	void main() 
-	{
-		outUV = uv;
-		gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
-	}
-`;
-
-const movingTexture = new THREE.TextureLoader().load( 'resources/gman-face.jpg' );
-movingTexture.minFilter = THREE.NearestFilter;
-movingTexture.magFilter = THREE.NearestFilter;
-movingTexture.wrapS = THREE.RepeatWrapping;
-movingTexture.wrapT = THREE.RepeatWrapping;
-
-const vUniforms = 
-{
-	uTime: { value: 0 },
-	textureSampler: { value: movingTexture },
-};
-
-const movingMaterial = new THREE.ShaderMaterial( {
-	vertexShader: vsCode,
-	fragmentShader: fsCode,
-	uniforms: vUniforms,
-	glslVersion: THREE.GLSL3,
-} );
-movingMaterial.name = "moving texture material";
-/////////////////
+const reflectiveCube = new THREE.Mesh( 
+new THREE.BoxGeometry(10, 10, 10),
+new THREE.MeshLambertMaterial( {
+color: 0xffffff, 
+envMap: cubeCamera.renderTarget.texture 
+})
+);
 
 
 function animate( )
 {
 	update();
+
 	graphicsContext.render();
 	requestAnimationFrame( animate );
 
@@ -87,6 +39,19 @@ function animate( )
 function update()
 {
 	timer.update();
+
+	/*update the reflections on the cube*/
+	reflectiveCube.position.y = 20;
+
+	reflectiveCube.visible = false;
+	cubeCamera.position.copy( reflectiveCube.position );
+
+	const renderer = graphicsContext.getRenderer();
+	const scene = graphicsContext.getScene();
+
+	cubeCamera.update( renderer, scene );
+
+	reflectiveCube.visible = true;
 }
 
 async function initEnvironmentMap()
@@ -150,6 +115,22 @@ function initGUI()
 
 function initTextureObject()
 {
+	const movingTexture = new THREE.TextureLoader().load( 'resources/gman-face.jpg' );
+	movingTexture.minFilter = THREE.NearestFilter;
+	movingTexture.magFilter = THREE.NearestFilter;
+	movingTexture.wrapS = THREE.RepeatWrapping;
+	movingTexture.wrapT = THREE.RepeatWrapping;
+
+	vUniforms.textureSampler = { value: movingTexture };
+
+	const movingMaterial = new THREE.ShaderMaterial( {
+		vertexShader: TileFadeShaderToy.vertexShader,
+		fragmentShader: TileFadeShaderToy.fragmentShader,
+		uniforms: vUniforms,
+		glslVersion: THREE.GLSL3,
+	} );
+
+	movingMaterial.name = "moving texture material";
 
 	const geometry = new THREE.SphereGeometry(10, 32, 16);
 	const obj = new THREE.Mesh(geometry, movingMaterial);
@@ -169,6 +150,11 @@ function initTextureObject()
 
 function initObjects()
 {
+	/* reflective cube */
+	graphicsContext.addObjectToScene( cubeCamera );
+	graphicsContext.addObjectToScene( reflectiveCube );
+
+
 	/*
 		sphere geometry
 	*/
@@ -211,7 +197,7 @@ function initObjects()
 	initTextureObject();
 
 	const plane = new THREE.Mesh(
-		new THREE.PlaneGeometry(200, 200),
+		new THREE.PlaneGeometry(600, 600),
 		new THREE.MeshStandardMaterial({ color: 0xF0F0F0 })
 	);
 
@@ -219,43 +205,14 @@ function initObjects()
 	plane.rotation.x = -Math.PI / 2.0;
 
 	graphicsContext.addObjectToScene(plane, true);
-	
-	const cubeCamera = new THREE.CubeCamera(1, Number.MAX_SAFE_INTEGER, 
-		new THREE.WebGLCubeRenderTarget( 256, {
-		generateMipmaps: true, 
-		minFiler: THREE.LinearMipmapLinearFilter
-	}) );
 
-	graphicsContext.addObjectToScene( cubeCamera );
   
-	const cube = new THREE.Mesh( 
-		new THREE.BoxGeometry(10, 10, 10),
-		new THREE.MeshLambertMaterial( {
-		color: 0xffffff, 
-		envMap: cubeCamera.renderTarget.texture 
-		})
-	);
-	cube.position.y = 20;
-
-	cube.visible = false;
-	cubeCamera.position.copy( cube.position );
-
-	const renderer = graphicsContext.getRenderer();
-	const scene = graphicsContext.getScene();
-
-	cubeCamera.update( renderer, scene );
-
-	cube.visible = true;
-
-	graphicsContext.addObjectToScene( cube );
-
 
 }
 
 function init()
 {
   timer = new THREE.Timer();
-	
 	timer.connect(document); //uses page visibility API so that there aren't crazy deltas when exiting the page.
 
 	initGUI();
