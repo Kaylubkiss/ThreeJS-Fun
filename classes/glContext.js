@@ -39,8 +39,8 @@ export class glContext
   {
     const root = gltf.scene;
     
-    this.m_scene.add( root );
-    this.m_resourceTracker.track(root);
+    this.m_scene.add( this.m_resourceTracker.track(root) );
+    
 
     // want to reframe the camera to cover the whole env/object.
     const box = new THREE.Box3().setFromObject( root );
@@ -48,6 +48,7 @@ export class glContext
     const boxCenter = box.getCenter( new THREE.Vector3() );
 
     root.position.sub(boxCenter);
+
     root.updateWorldMatrix(1, 1);
 
     this.setFrameArea( boxSize * 0.5, boxSize, boxCenter );
