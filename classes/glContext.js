@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { ResourceTracker } from './resourceTracker.js';
+import {  } from './'
 
 export class glContext 
 {
@@ -24,11 +25,12 @@ export class glContext
 
     this.m_renderer = new THREE.WebGLRenderer({ canvas: mainView });
     
-    this.m_renderer.setSize(window.innerWidth, window.innerHeight);
+    this.m_renderer.setSize( window.innerWidth, window.innerHeight );
 
     this.m_renderer.shadowMap.enabled = true;
     
-    this.m_controls = new OrbitControls(this.m_camera, mainView );
+    this.m_controls = new OrbitControls( this.m_camera, mainView );
+
     this.m_controls.update();
     
     document.body.appendChild( this.m_renderer.domElement );

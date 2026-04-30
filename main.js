@@ -9,6 +9,11 @@ let graphicsContext;
 let timer;
 let gui;
 let vUniforms = { uTime: { value: 0 } };
+const centerOfRotation = new THREE.Vector3(0, 15, 0);
+const rotRadius = 35;
+const rotSpeed = 0.75;
+
+let spheres = [];
 
 const cubeCamera = new THREE.CubeCamera(1, Number.MAX_SAFE_INTEGER, 
 		new THREE.WebGLCubeRenderTarget( 256, {
@@ -32,7 +37,26 @@ function animate( )
 	graphicsContext.render();
 	requestAnimationFrame( animate );
 
-	vUniforms.uTime.value = timer.getElapsed();
+	const t = timer.getElapsed();
+
+	vUniforms.uTime.value = t;
+
+	let offset = 0;
+
+	if (spheres.length)
+	{
+		offset =	Math.PI / spheres.length
+	}
+
+	for (let i = 0; i < spheres.length; ++i)
+	{
+		spheres[i].position.set
+		( 
+			centerOfRotation.x + Math.cos(t * rotSpeed + offset * i) * rotRadius,
+			centerOfRotation.y,
+			centerOfRotation.z + Math.sin(t * rotSpeed + offset * i) * rotRadius
+		)
+	}
 
 }
 
@@ -139,7 +163,11 @@ function initTextureObject()
 	obj.castShadow = true;
 	obj.receiveShadow = true;
 
+	spheres.push( obj );
+	
 	graphicsContext.addObjectToScene( obj );
+
+
 
 	const folder = gui.addFolder( "textured objection positions");
 	folder.add( obj.position, 'x', -100, 100, 5);
@@ -192,6 +220,8 @@ function initObjects()
 	sphere.castShadow = true;
 	sphere.receiveShadow = true;
 
+	spheres.push(sphere);
+
 	graphicsContext.addObjectToScene(sphere);
 	
 	initTextureObject();
@@ -205,9 +235,7 @@ function initObjects()
 	plane.rotation.x = -Math.PI / 2.0;
 
 	graphicsContext.addObjectToScene(plane, true);
-
-  
-
+	
 }
 
 function init()
